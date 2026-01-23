@@ -1,8 +1,9 @@
 import streamlit as st
 import yt_dlp
-import os
-import requests
+import tempfile
+import shutil
 from pathlib import Path
+import os
 
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(
@@ -45,9 +46,6 @@ st.markdown('<div class="card">', unsafe_allow_html=True)
 
 youtube_url = st.text_input("🔗 YouTube Video URL", placeholder="https://www.youtube.com/watch?v=...")
 
-output_dir = Path("downloads")
-output_dir.mkdir(exist_ok=True)
-
 progress_bar = st.progress(0)
 status_text = st.empty()
 
@@ -57,22 +55,34 @@ def get_video_info(url):
         return ydl.extract_info(url, download=False)
 
 def download_audio(url, progress_hook):
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": str(output_dir / "%(title)s.%(ext)s"),
-        "progress_hooks": [progress_hook],
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "192",
-        }],
-        "quiet": True,
-    }
+    # Create a temporary folder for video download
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": str(Path(tmp_dir) / "%(title)s.%(ext)s"),
+            "progress_hooks": [progress_hook],
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }],
+            "quiet": True,
+        }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-        return filename.replace(".webm", ".mp3").replace(".m4a", ".mp3"), info
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            # yt-dlp converts and saves MP3 in the same tmp_dir
+            filename = ydl.prepare_filename(info)
+            audio_file = filename.rsplit(".", 1)[0] + ".mp3"
+
+            # Copy the MP3 to the "downloads" folder for Streamlit download
+            output_dir = Path("downloads")
+            output_dir.mkdir(exist_ok=True)
+            final_path = output_dir / Path(audio_file).name
+            shutil.copy(audio_file, final_path)
+
+            # The temporary folder is automatically deleted here
+            return final_path, info
 
 def progress_hook(d):
     if d["status"] == "downloading":
@@ -109,7 +119,7 @@ if st.button("🎧 Convert to MP3"):
                 st.download_button(
                     "⬇️ Download MP3",
                     data=f,
-                    file_name=os.path.basename(audio_file),
+                    file_name=audio_file.name,
                     mime="audio/mpeg"
                 )
 
