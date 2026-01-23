@@ -1,9 +1,4 @@
-Absolutely — here’s a **clean, professional, GitHub-ready `README.md`** for your project.
-You can copy-paste this directly into your repo 👇
 
----
-
-````markdown
 # 🎵 YouTube to Audio Converter (Streamlit)
 
 A modern, aesthetic **Streamlit web application** that converts YouTube videos into high-quality audio files (MP3).  
