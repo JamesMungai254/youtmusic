@@ -4,11 +4,10 @@ import tempfile
 import shutil
 from pathlib import Path
 import os
-from moviepy.editor import VideoFileClip
 
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(
-    page_title="YouTube Downloader & Video-to-Audio Converter",
+    page_title="YouTube Downloader & Converter",
     page_icon="🎬",
     layout="centered"
 )
@@ -27,7 +26,7 @@ h1 {text-align: center; color: #6366f1;}
 st.markdown("<h1>🎬 YouTube Downloader & Video-to-Audio Converter</h1>", unsafe_allow_html=True)
 st.markdown('<div class="card">', unsafe_allow_html=True)
 
-# ------------------ OPTIONS ------------------
+# ------------------ TABS ------------------
 tab1, tab2 = st.tabs(["YouTube Downloader", "Video-to-Audio Converter"])
 
 # ------------------ TAB 1: YouTube Downloader ------------------
@@ -59,7 +58,7 @@ with tab1:
                     "progress_hooks": [progress_hook],
                     "quiet": True,
                 }
-            elif download_type == "audio":
+            else:  # download_type == "audio"
                 ydl_opts = {
                     "format": "bestaudio/best",
                     "outtmpl": str(Path(tmp_dir) / "%(title)s.%(ext)s"),
@@ -77,7 +76,6 @@ with tab1:
                 filename = ydl.prepare_filename(info)
                 final_file = Path(tmp_dir) / (Path(filename).stem + (".mp3" if download_type=="audio" else ".mp4"))
 
-                # Copy to permanent downloads folder
                 downloads_dir = Path("downloads")
                 downloads_dir.mkdir(exist_ok=True)
                 final_path = downloads_dir / final_file.name
@@ -113,39 +111,53 @@ with tab1:
 # ------------------ TAB 2: Video-to-Audio Converter ------------------
 with tab2:
     uploaded_file = st.file_uploader("📂 Upload a video file", type=["mp4", "mov", "mkv", "avi"])
-    if uploaded_file:
-        progress_bar2 = st.progress(0)
-        status_text2 = st.empty()
+    progress_bar2 = st.progress(0)
+    status_text2 = st.empty()
 
-        if st.button("🎧 Convert to MP3"):
-            try:
-                # Save uploaded file temporarily
-                with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp_video:
-                    tmp_video.write(uploaded_file.read())
-                    tmp_video_path = tmp_video.name
+    if uploaded_file and st.button("🎧 Convert to MP3"):
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_video_path = Path(tmp_dir) / uploaded_file.name
+                with open(tmp_video_path, "wb") as f:
+                    f.write(uploaded_file.read())
 
-                # Convert to MP3 using moviepy
                 status_text2.text("🎬 Converting video to audio...")
-                clip = VideoFileClip(tmp_video_path)
-                output_audio_path = Path("downloads") / (Path(uploaded_file.name).stem + ".mp3")
-                clip.audio.write_audiofile(output_audio_path, logger=None)
-                clip.close()
-                os.remove(tmp_video_path)  # Delete temp video
+
+                ydl_opts = {
+                    "format": "bestaudio/best",
+                    "outtmpl": str(Path(tmp_dir) / "%(title)s.%(ext)s"),
+                    "postprocessors": [{
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "192",
+                    }],
+                    "quiet": True,
+                }
+
+                # Convert uploaded video to audio using yt-dlp
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(f"file:{tmp_video_path}", download=True)
+                    final_audio_path = Path(tmp_dir) / (Path(tmp_video_path).stem + ".mp3")
+
+                    downloads_dir = Path("downloads")
+                    downloads_dir.mkdir(exist_ok=True)
+                    final_path = downloads_dir / final_audio_path.name
+                    shutil.copy(final_audio_path, final_path)
 
                 progress_bar2.progress(100)
                 status_text2.text("✅ Conversion complete!")
 
-                with open(output_audio_path, "rb") as f:
+                with open(final_path, "rb") as f:
                     st.download_button(
                         "⬇️ Download MP3",
                         data=f,
-                        file_name=output_audio_path.name,
+                        file_name=final_path.name,
                         mime="audio/mpeg"
                     )
 
-            except Exception as e:
-                st.error("❌ Conversion failed.")
-                st.exception(e)
+        except Exception as e:
+            st.error("❌ Conversion failed.")
+            st.exception(e)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -153,6 +165,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown("""
 ---
 <p style="text-align:center;color:#9ca3af;">
-Built with ❤️ by <b>James Mungai</b> | Streamlit • yt-dlp • FFmpeg • MoviePy
+Built with ❤️ by <b>James Mungai</b> | Streamlit • yt-dlp • FFmpeg
 </p>
 """, unsafe_allow_html=True)
