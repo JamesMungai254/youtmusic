@@ -1,7 +1,3 @@
 streamlit
-imageio 
-imageio-ffmpeg
 yt-dlp
-
 requests
-imageio
