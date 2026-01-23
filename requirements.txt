@@ -2,6 +2,6 @@ streamlit
 imageio 
 imageio-ffmpeg
 yt-dlp
-moviepy
+
 requests
 imageio
