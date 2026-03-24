@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # 🔥 CHANGE THIS if deployed
-BACKEND_URL = "http://localhost:8000/download"
+BACKEND_URL = "http://0.0.0.0:8000/download"
 
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(
