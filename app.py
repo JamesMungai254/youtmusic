@@ -74,7 +74,8 @@ with tab1:
                     "outtmpl": str(Path(tmp_dir) / "%(title).50s.%(ext)s"),
                     "merge_output_format": "mp4",
                     "progress_hooks": [progress_hook],
-                    "quiet": True,
+                    "quiet": False,
+"noplaylist": True,
                 }
 
             else:
@@ -87,7 +88,8 @@ with tab1:
                         "preferredcodec": "mp3",
                         "preferredquality": "192",
                     }],
-                    "quiet": True,
+                    "quiet": False,
+                    "noplaylist": True,
                 }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
